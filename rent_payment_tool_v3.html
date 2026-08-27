@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>租金匯款單產生器 星鴻|宜蘭</title>
+<style>
+  :root { --green:#e4f1dd; --line:#6f6f6f; --soft:#f3f4f6; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif; color:#000; background:var(--soft); }
+  body { padding:20px; }
+  .toolbar { max-width:1100px; margin:0 auto 20px; background:#fff; border-radius:12px; padding:20px; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+  .toolbar h1 { margin:0 0 6px; font-size:24px; }
+  .hint { margin:0 0 18px; color:#555; font-size:14px; }
+  .form-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px 14px; }
+  .field { display:flex; flex-direction:column; gap:5px; }
+  .span-2 { grid-column:span 2; }
+  .span-4 { grid-column:span 4; }
+  label { font-size:13px; font-weight:700; color:#333; }
+  input, select { width:100%; height:40px; border:1px solid #b6c0b1; border-radius:5px; padding:0 10px; font-size:15px; font-family:inherit; color:#000 !important; -webkit-text-fill-color:#000 !important; background:#fff; opacity:1; }
+  input::placeholder { color:#777; -webkit-text-fill-color:#777; }
+  .user-input { background:var(--green) !important; color:#000 !important; -webkit-text-fill-color:#000 !important; }
+  input[readonly], select:disabled { background:#edf3ea !important; color:#333 !important; -webkit-text-fill-color:#333 !important; cursor:not-allowed; opacity:1; }
+  input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus { -webkit-text-fill-color:#000 !important; transition:background-color 9999s ease-out 0s; }
+  .field-note { font-size:12px; color:#555; }
+  .actions { display:flex; gap:10px; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid #ddd; flex-wrap:wrap; }
+  .status { margin-right:auto; font-size:14px; color:#333; }
+  button { border:0; border-radius:6px; padding:10px 18px; font-size:15px; font-family:inherit; cursor:pointer; }
+  .btn-print { background:#222; color:#fff; }
+  .btn-reset { background:#e6e6e6; color:#111; }
+  .preview-label { width:210mm; max-width:100%; margin:0 auto 8px; font-size:13px; color:#666; }
+  #printArea { display:flex; flex-direction:column; gap:16px; align-items:center; }
+  .a4-page { width:210mm; height:297mm; background:#fff; display:grid; grid-template-rows:repeat(4,74.25mm); box-shadow:0 2px 14px rgba(0,0,0,.16); overflow:hidden; }
+  .rent-slip { position:relative; height:74.25mm; padding:7.3mm 10mm 6.5mm; border-bottom:1px dashed #999; overflow:hidden; }
+  .rent-slip:last-child { border-bottom:0; }
+  .slip-header { display:grid; grid-template-columns:1fr auto; align-items:end; gap:12px; border-bottom:1.5px solid #555; padding-bottom:2mm; margin-bottom:2.5mm; }
+  .slip-title { font-size:16px; font-weight:800; letter-spacing:.2px; }
+  .slip-month { font-size:17px; font-weight:800; white-space:nowrap; }
+  .slip-grid { display:grid; grid-template-columns:1fr 1.15fr; gap:6mm; }
+  table { width:100%; border-collapse:collapse; table-layout:fixed; }
+  td { font-size:12px; line-height:1.35; padding:1.25mm .8mm; vertical-align:top; }
+  .k { width:23mm; white-space:nowrap; color:#444; }
+  .v { border-bottom:1px solid #b8b8b8; word-break:break-all; }
+  .amounts { margin-top:2.5mm; padding-top:2.3mm; border-top:1px solid #999; display:grid; grid-template-columns:1fr 1fr 1.25fr; gap:4mm; font-size:12px; }
+  .amounts strong { font-size:14px; }
+  .cut-label { position:absolute; right:4mm; bottom:1.5mm; font-size:9px; color:#999; background:#fff; padding-left:2mm; }
+  .small-note { margin-top:1.7mm; font-size:9.5px; color:#666; }
+  @media (max-width:900px) { body { padding:10px; } .form-grid { grid-template-columns:1fr 1fr; } .span-4 { grid-column:span 2; } .a4-page { transform-origin:top center; width:210mm; } }
+  @page { size:A4 portrait; margin:0; }
+  @media print {
+    html, body { background:#fff; padding:0; margin:0; }
+    .toolbar, .preview-label { display:none !important; }
+    #printArea { display:block; gap:0; }
+    .a4-page { width:210mm; height:297mm; margin:0; box-shadow:none; page-break-after:always; break-after:page; }
+    .a4-page:last-child { page-break-after:auto; break-after:auto; }
+    .rent-slip { page-break-inside:avoid; break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<section class="toolbar">
+  <h1>租金匯款單產生器 星鴻|宜蘭</h1>
+  <p class="hint">輸入淺綠色欄位後，下方會即時更新預覽。A4 直式，每頁 4 個月份，方便裁切。</p>
+  <div class="form-grid">
+    <input id="title" type="hidden" value="星鴻宜蘭 社宅租金匯款資訊">
+    <div class="field span-2">
+      <label for="address">租屋地址</label>
+      <input id="address" class="user-input" value="宜蘭縣宜蘭市舊城北路154號2樓">
+    </div>
+    <div class="field">
+      <label for="tenant">承租人</label>
+      <input id="tenant" class="user-input" value="星小鴻" placeholder="請輸入承租人姓名">
+    </div>
+    <div class="field">
+      <label for="idNumber">身分證字號</label>
+      <input id="idNumber" class="user-input" value="G123456789" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="rent">每月租金</label>
+      <input id="rent" class="user-input" type="number" value="10000" min="0">
+    </div>
+    <div class="field">
+      <label for="managementFee">管理費</label>
+      <input id="managementFee" class="user-input" type="number" value="0" min="0">
+    </div>
+    <input id="bank" type="hidden" value="國泰世華銀行　銀行代號013　星鴻股份有限公司　西門分行">
+    <input id="account" type="hidden">
+    <div class="field span-2">
+      <label for="startDate">起租日</label>
+      <input id="startDate" class="user-input" type="date">
+    </div>
+    <div class="field">
+      <label for="monthsCount">列印期間</label>
+      <select id="monthsCount" class="user-input">
+        <option value="12">12 個月</option><option value="24">24 個月</option><option value="36">36 個月</option>
+      </select>
+    </div>
+  </div>
+  <div class="actions">
+    <div class="status">即時預覽：<strong id="monthStatus">12 個月</strong> ／ 預計列印：<strong id="pageStatus">3 張 A4</strong></div>
+    <button class="btn-reset" id="resetBtn" type="button">恢復範例資料</button>
+    <button class="btn-print" id="printBtn" type="button">列印 / 儲存 PDF</button>
+  </div>
+</section>
+<div class="preview-label">A4 列印預覽</div>
+<main id="printArea"></main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const ids = ["address","tenant","idNumber","rent","managementFee","startDate","monthsCount"];
+  const openedAt = new Date();
+  const defaultStartDate = `${openedAt.getFullYear()}-${String(openedAt.getMonth() + 1).padStart(2, "0")}-${String(openedAt.getDate()).padStart(2, "0")}`;
+  const sample = { address:"宜蘭縣宜蘭市舊城北路154號2樓", tenant:"星小鴻", idNumber:"G123456789", rent:"10000", managementFee:"0", startDate:defaultStartDate, monthsCount:"12" };
+  const exampleFieldIds = ["address","tenant","idNumber","rent","managementFee","startDate"];
+  const clearedExamples = new Set();
+  $("startDate").value = defaultStartDate;
+
+  function escapeHtml(s) {
+    return String(s ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[ch]));
+  }
+  function money(n) { return Number(n || 0).toLocaleString("zh-TW"); }
+  function getAccount() {
+    const digits = ($("idNumber").value || "").replace(/[^0-9]/g, "");
+    const firstPart = digits.slice(0, 4);
+    const secondPart = digits.slice(4);
+    const account = digits ? `76550-${firstPart}${secondPart ? `-${secondPart}` : ""}` : "76550-";
+    $("account").value = account;
+    return account;
+  }
+  function addMonthsClamped(date, months) {
+    const targetMonth = date.getMonth() + months;
+    const targetYear = date.getFullYear() + Math.floor(targetMonth / 12);
+    const normalizedMonth = ((targetMonth % 12) + 12) % 12;
+    const lastDay = new Date(targetYear, normalizedMonth + 1, 0).getDate();
+    return new Date(targetYear, normalizedMonth, Math.min(date.getDate(), lastDay));
+  }
+  function getDueDate(periodStart) {
+    const dueDate = new Date(periodStart);
+    dueDate.setDate(dueDate.getDate() - 1);
+    return `${dueDate.getFullYear()}年${dueDate.getMonth() + 1}月${dueDate.getDate()}日`;
+  }
+  function formatBankInfo() {
+    return escapeHtml($("bank").value).replace("星鴻股份", "<br>星鴻股份");
+  }
+  function makeSlip(periodStart, indexInPage) {
+    const year = periodStart.getFullYear();
+    const month = periodStart.getMonth() + 1;
+    const rent = Number($("rent").value || 0);
+    const fee = Number($("managementFee").value || 0);
+    const total = rent + fee;
+    const account = getAccount();
+    const section = document.createElement("section");
+    section.className = "rent-slip";
+    section.innerHTML = `
+      <div class="slip-header">
+        <div class="slip-title">${escapeHtml($("title").value)}</div>
+        <div class="slip-month">${year}年 ${month}月租金</div>
+      </div>
+      <div class="slip-grid">
+        <table>
+          <tr><td class="k">租賃地址：</td><td class="v">${escapeHtml($("address").value)}</td></tr>
+          <tr><td class="k">租金月份：</td><td class="v">${year}年${month}月</td></tr>
+          <tr><td class="k">承租人：</td><td class="v">${escapeHtml($("tenant").value || "　")}</td></tr>
+          <tr><td class="k">身分證號：</td><td class="v">${escapeHtml($("idNumber").value)}</td></tr>
+        </table>
+        <table>
+          <tr><td class="k">匯款資訊：</td><td class="v">${formatBankInfo()}</td></tr>
+          <tr><td class="k">匯款帳號：</td><td class="v"><strong>${escapeHtml(account)}</strong></td></tr>
+          <tr><td class="k">繳款期限：</td><td class="v"><strong>${getDueDate(periodStart)}</strong></td></tr>
+          <tr><td class="k">本期應繳：</td><td class="v"><strong>NT$ ${money(total)}</strong></td></tr>
+        </table>
+      </div>
+      <div class="amounts">
+        <div>租金：<strong>NT$ ${money(rent)}</strong></div>
+        <div>管理費：<strong>NT$ ${money(fee)}</strong></div>
+        <div>合計：<strong>NT$ ${money(total)}</strong></div>
+      </div>
+      <div class="small-note">匯款完成後請保留交易紀錄，以利後續核對。</div>
+      ${indexInPage < 3 ? '<span class="cut-label">✂ 裁切線</span>' : ''}
+    `;
+    return section;
+  }
+  function generate() {
+    const area = $("printArea");
+    area.innerHTML = "";
+    const selectedStart = $("startDate").value || defaultStartDate;
+    const [startYear, startMonth, startDay] = selectedStart.split("-").map(Number);
+    const baseStartDate = new Date(startYear, startMonth - 1, startDay);
+    const count = Number($("monthsCount").value) || 12;
+    const pages = Math.ceil(count / 4);
+    $("monthStatus").textContent = `${count} 個月`;
+    $("pageStatus").textContent = `${pages} 張 A4`;
+    getAccount();
+    for (let p = 0; p < pages; p++) {
+      const page = document.createElement("div");
+      page.className = "a4-page";
+      for (let row = 0; row < 4; row++) {
+        if (p * 4 + row >= count) break;
+        const periodStart = addMonthsClamped(baseStartDate, p * 4 + row);
+        page.appendChild(makeSlip(periodStart, row));
+      }
+      area.appendChild(page);
+    }
+  }
+  function resetSample() {
+    Object.entries(sample).forEach(([key,value]) => { if ($(key)) $(key).value = value; });
+    clearedExamples.clear();
+    generate();
+  }
+  exampleFieldIds.forEach(id => {
+    $(id).addEventListener("focus", () => {
+      if (!clearedExamples.has(id) && $(id).value === String(sample[id])) {
+        $(id).value = "";
+        clearedExamples.add(id);
+        generate();
+      }
+    });
+  });
+  ids.forEach(id => {
+    const events = id === "idNumber" ? ["input","change","keyup","blur","paste"] : ["input","change"];
+    events.forEach(eventName => $(id).addEventListener(eventName, () => {
+      if (eventName === "paste") setTimeout(generate, 0); else generate();
+    }));
+  });
+  $("printBtn").addEventListener("click", () => { generate(); setTimeout(() => window.print(), 50); });
+  $("resetBtn").addEventListener("click", resetSample);
+  generate();
+})();
+</script>
+</body>
+</html>
